@@ -33,10 +33,29 @@ const getAllTuitions = async (req, res) => {
             ];
         }
 
-        const tuitions = await db
-            .collection("tuitions")
+
+        const collection = db.collection("tuitions");
+
+        // Total matching tuition count
+        const totalTuitions = await collection.countDocuments(query);
+
+        // Fetch tuition for the current page
+        const tuitions = await collection
             .find(query)
+            .skip(skip)
+            .limit(limit)
             .toArray();
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalTuitions / limit);
+
+        res.send({
+            tuitions,
+            totalTuitions,
+            totalPages,
+            currentPage: page,
+        });
+
 
         res.send(tuitions);
     } catch (error) {
