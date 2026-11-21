@@ -3,6 +3,8 @@ import tuitionRoutes from "./routes/tuitionRoutes.js";
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./config/auth.js";
 const app = express();
 
 // Server port
@@ -10,6 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
+app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 // Database Middleware

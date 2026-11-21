@@ -15,10 +15,25 @@ export const auth = betterAuth({
         enabled: true,
     },
 
+    databaseHooks: {
+        user: {
+            create: {
+                before: async (user) => {
+                    return {
+                        data: {
+                            ...user,
+                            role: user.role === "tutor" ? "tutor" : "student",
+                        },
+                    };
+                },
+            },
+        },
+    },
+
     user: {
         additionalFields: {
             role: {
-                type: "string",
+                type: ["student", "tutor", 'admin'],
                 required: true,
                 defaultValue: "student",
                 input: true,
