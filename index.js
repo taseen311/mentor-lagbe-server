@@ -1,3 +1,4 @@
+
 import { connectDB } from "./config/db.js";
 import tuitionRoutes from "./routes/tuitionRoutes.js";
 import express from "express";
@@ -6,22 +7,24 @@ import "dotenv/config";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./config/auth.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
-const app = express();
+import paymentRoutes from "./routes/paymentRoutes.js";
+import { handleStripeWebhook } from "./controllers/paymentController.js";
 
-// Server port
+const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// 1. CORS Middleware
 app.use(
     cors({
         origin: "http://localhost:3000",
         credentials: true,
     })
 );
-app.all("/api/auth/*splat", toNodeHandler(auth));
-app.use(express.json());
 
-// Database Middleware
+// 2. Better Auth
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
+// 3. Database Middleware
 app.use(async (req, res, next) => {
     try {
         await connectDB();
@@ -34,19 +37,27 @@ app.use(async (req, res, next) => {
     }
 });
 
-//routes
+// 4. Stripe Webhook (must be before express.json)
+app.post(
+    "/api/payments/webhook",
+    express.raw({ type: "application/json" }),
+    handleStripeWebhook
+);
 
-// Routes
+// 5. JSON Middleware
+app.use(express.json());
+
+// 6. API Routes
 app.use("/api/tuitions", tuitionRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/payments", paymentRoutes);
 
-
-// Test route
+// 7. Test Route
 app.get("/", (req, res) => {
     res.send("MentorLagbe Server is Running!");
 });
 
-// Start Server
+// 8. Start Server
 app.listen(PORT, () => {
     console.log(`MentorLagbe Server is running on port ${PORT}`);
 });

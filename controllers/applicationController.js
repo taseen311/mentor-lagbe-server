@@ -4,6 +4,7 @@ import { getDB } from "../config/db.js";
 import { auth } from "../config/auth.js";
 import { fromNodeHeaders } from "better-auth/node";
 
+
 // Verify logged-in student
 const getStudentSession = async (req) => {
     const session = await auth.api.getSession({
@@ -217,5 +218,12 @@ const updateApplicationStatus = async (req, res) => {
 };
 
 
+
+// export { createCheckoutSession, handleStripeWebhook };
+
+
+
 export { createApplication, getMyApplications, getTutorApplications, updateApplicationStatus };
+
+
 
