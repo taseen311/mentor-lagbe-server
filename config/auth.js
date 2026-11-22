@@ -17,6 +17,13 @@ export const auth = betterAuth({
         ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL.replace(/\/$/, "")] : [])
     ],
 
+    advanced: {
+        defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+        },
+    },
+
     emailAndPassword: {
         enabled: true,
     },
