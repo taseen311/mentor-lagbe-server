@@ -40,6 +40,12 @@ export const auth = betterAuth({
                 defaultValue: "student",
                 input: true,
             },
+            plan: {
+                type: ["free", "pro"],
+                required: true,
+                defaultValue: "free",
+                input: false,
+            },
         },
     },
 });
