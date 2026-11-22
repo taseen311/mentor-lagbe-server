@@ -122,5 +122,100 @@ const getMyApplications = async (req, res) => {
     }
 };
 
-export { createApplication, getMyApplications };
+
+const getTutorApplications = async (req, res) => {
+    try {
+        const db = getDB();
+
+        const session = await auth.api.getSession({
+            headers: fromNodeHeaders(req.headers),
+        });
+
+        if (!session || session.user.role !== "tutor") {
+            return res.status(401).send({
+                message: "Tutor access required",
+            });
+        }
+
+        const applications = await db.collection("applications")
+            .find({
+                tutorEmail: session.user.email,
+            })
+            .sort({ appliedAt: -1 })
+            .toArray();
+
+        res.send(applications);
+
+    } catch (error) {
+        console.error("Get Tutor Applications Error:", error);
+
+        res.status(500).send({
+            message: "Failed to fetch applications",
+        });
+    }
+};
+
+const updateApplicationStatus = async (req, res) => {
+    try {
+        const db = getDB();
+
+        const session = await auth.api.getSession({
+            headers: fromNodeHeaders(req.headers),
+        });
+
+        if (!session || session.user.role !== "tutor") {
+            return res.status(401).send({
+                message: "Tutor access required",
+            });
+        }
+
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).send({
+                message: "Invalid application ID",
+            });
+        }
+
+        if (!["accepted", "rejected"].includes(status)) {
+            return res.status(400).send({
+                message: "Invalid application status",
+            });
+        }
+
+        const result = await db.collection("applications").updateOne(
+            {
+                _id: new ObjectId(id),
+                tutorEmail: session.user.email,
+            },
+            {
+                $set: {
+                    status,
+                    updatedAt: new Date(),
+                },
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send({
+                message: "Application not found",
+            });
+        }
+
+        res.send({
+            message: `Application ${status} successfully!`,
+        });
+
+    } catch (error) {
+        console.error("Update Application Status Error:", error);
+
+        res.status(500).send({
+            message: "Failed to update application status",
+        });
+    }
+};
+
+
+export { createApplication, getMyApplications, getTutorApplications, updateApplicationStatus };
 

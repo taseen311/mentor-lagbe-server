@@ -1,5 +1,7 @@
 import { getDB } from "../config/db.js";
 import { ObjectId } from "mongodb";
+import { auth } from "../config/auth.js";
+import { fromNodeHeaders } from "better-auth/node";
 
 const getAllTuitions = async (req, res) => {
     try {
@@ -348,5 +350,38 @@ const updateTuitionApproval = async (req, res) => {
     }
 };
 
+const getMyTuitions = async (req, res) => {
+    try {
+        const db = getDB();
 
-export { getAllTuitions, createTuition, getTuitionById, updateTuition, deleteTuition, getPendingTuitions, updateTuitionApproval };
+        const session = await auth.api.getSession({
+            headers: fromNodeHeaders(req.headers),
+        });
+
+        if (!session || session.user.role !== "tutor") {
+            return res.status(401).send({
+                message: "Tutor access required",
+            });
+        }
+
+        const tuitions = await db.collection("tuitions")
+            .find({
+                tutorEmail: session.user.email,
+            })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        res.send(tuitions);
+
+    } catch (error) {
+        console.error("Get My Tuitions Error:", error);
+
+        res.status(500).send({
+            message: "Failed to fetch your tuitions",
+        });
+    }
+};
+
+
+
+export { getAllTuitions, createTuition, getTuitionById, updateTuition, deleteTuition, getPendingTuitions, updateTuitionApproval, getMyTuitions };
