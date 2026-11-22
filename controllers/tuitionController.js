@@ -42,6 +42,7 @@ const getAllTuitions = async (req, res) => {
         // Fetch tuition for the current page
         const tuitions = await collection
             .find(query)
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .toArray();
@@ -337,10 +338,12 @@ const updateTuitionApproval = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Update Approval Error:", error);
+        console.error("Update Approval Error:", error.message);
+        console.error(error);
 
         res.status(500).send({
             message: "Failed to update tuition approval",
+            error: error.message,
         });
     }
 };
