@@ -275,5 +275,75 @@ const deleteTuition = async (req, res) => {
     }
 };
 
+// Get all pending tuitions for Admin
+const getPendingTuitions = async (req, res) => {
+    try {
+        const db = getDB();
 
-export { getAllTuitions, createTuition, getTuitionById, updateTuition, deleteTuition };
+        const tuitions = await db.collection("tuitions")
+            .find({ approvalStatus: "pending" })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        res.send(tuitions);
+
+    } catch (error) {
+        console.error("Get Pending Tuitions Error:", error);
+
+        res.status(500).send({
+            message: "Failed to fetch pending tuitions",
+        });
+    }
+};
+
+
+// Approve or Reject a tuition
+const updateTuitionApproval = async (req, res) => {
+    try {
+        const db = getDB();
+        const { id } = req.params;
+        const { approvalStatus } = req.body;
+
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).send({
+                message: "Invalid tuition ID",
+            });
+        }
+
+        if (!["approved", "rejected"].includes(approvalStatus)) {
+            return res.status(400).send({
+                message: "Status must be approved or rejected",
+            });
+        }
+
+        const result = await db.collection("tuitions").updateOne(
+            { _id: new ObjectId(id) },
+            {
+                $set: {
+                    approvalStatus,
+                    updatedAt: new Date(),
+                },
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send({
+                message: "Tuition not found",
+            });
+        }
+
+        res.send({
+            message: `Tuition ${approvalStatus} successfully!`,
+        });
+
+    } catch (error) {
+        console.error("Update Approval Error:", error);
+
+        res.status(500).send({
+            message: "Failed to update tuition approval",
+        });
+    }
+};
+
+
+export { getAllTuitions, createTuition, getTuitionById, updateTuition, deleteTuition, getPendingTuitions, updateTuitionApproval };
