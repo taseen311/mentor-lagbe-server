@@ -14,12 +14,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // 1. CORS Middleware
-app.use(
-    cors({
-        origin: "http://localhost:3000",
-        credentials: true,
-    })
-);
+const allowedOrigins = [
+    "http://localhost:3000",
+    process.env.CLIENT_URL,
+];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+}));
 
 // 2. Better Auth
 app.all("/api/auth/*splat", toNodeHandler(auth));
@@ -61,3 +64,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
     console.log(`MentorLagbe Server is running on port ${PORT}`);
 });
+
+export default app
