@@ -14,13 +14,21 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // 1. CORS Middleware
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "";
 const allowedOrigins = [
     "http://localhost:3000",
-    process.env.CLIENT_URL,
-];
+    "https://mentorlagbe-client-theta.vercel.app",
+    clientUrl,
+].filter(Boolean);
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
 }));
 
@@ -61,8 +69,10 @@ app.get("/", (req, res) => {
 });
 
 // 8. Start Server
-app.listen(PORT, () => {
-    console.log(`MentorLagbe Server is running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`MentorLagbe Server is running on port ${PORT}`);
+    });
+}
 
 export default app
