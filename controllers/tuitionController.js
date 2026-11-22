@@ -57,7 +57,7 @@ const getAllTuitions = async (req, res) => {
         });
 
 
-        res.send(tuitions);
+
     } catch (error) {
         console.error("Get Tuitions Error:", error);
         res.status(500).send({
