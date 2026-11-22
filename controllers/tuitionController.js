@@ -71,10 +71,40 @@ const getAllTuitions = async (req, res) => {
 
 
 
+
 const createTuition = async (req, res) => {
     try {
         const db = getDB();
 
+        // Verify logged-in tutor
+        const session = await auth.api.getSession({
+            headers: fromNodeHeaders(req.headers),
+        });
+
+        if (!session || session.user.role !== "tutor") {
+            return res.status(401).send({
+                message: "Please login with a tutor account",
+            });
+        }
+
+        // Get tutor information from authenticated session
+        const tutorEmail = session.user.email;
+        const tutorName = session.user.name;
+        const plan = session.user.plan || "free";
+
+        // Free plan: Maximum 2 tuition posts
+        if (plan !== "pro") {
+            const tuitionCount = await db.collection("tuitions")
+                .countDocuments({ tutorEmail });
+
+            if (tuitionCount >= 2) {
+                return res.status(403).send({
+                    message: "Free plan allows maximum 2 tuition posts. Please upgrade to Pro!",
+                });
+            }
+        }
+
+        // Get tuition information from request body
         const {
             title,
             subject,
@@ -85,8 +115,6 @@ const createTuition = async (req, res) => {
             daysPerWeek,
             bannerImage,
             description,
-            tutorName,
-            tutorEmail,
         } = req.body;
 
         // Validate required fields
@@ -98,24 +126,22 @@ const createTuition = async (req, res) => {
             !location ||
             !monthlyFee ||
             !daysPerWeek ||
-            !description ||
-            !tutorName ||
-            !tutorEmail
+            !description
         ) {
             return res.status(400).send({
                 message: "Please provide all required fields",
             });
         }
 
-        // Validate mode
+        // Validate tuition mode
         if (!["Online", "Offline"].includes(mode)) {
             return res.status(400).send({
                 message: "Mode must be Online or Offline",
             });
         }
 
+        // Validate monthly fee
         const fee = Number(monthlyFee);
-        const days = Number(daysPerWeek);
 
         if (!Number.isFinite(fee) || fee <= 0) {
             return res.status(400).send({
@@ -123,12 +149,16 @@ const createTuition = async (req, res) => {
             });
         }
 
+        // Validate days per week
+        const days = Number(daysPerWeek);
+
         if (!Number.isInteger(days) || days < 1 || days > 7) {
             return res.status(400).send({
                 message: "Days per week must be between 1 and 7",
             });
         }
 
+        // Create tuition
         const newTuition = {
             title,
             subject,
@@ -146,9 +176,7 @@ const createTuition = async (req, res) => {
             createdAt: new Date(),
         };
 
-        const result = await db
-            .collection("tuitions")
-            .insertOne(newTuition);
+        const result = await db.collection("tuitions").insertOne(newTuition);
 
         res.status(201).send({
             message: "Tuition created successfully!",
@@ -163,6 +191,7 @@ const createTuition = async (req, res) => {
         });
     }
 };
+
 
 const getTuitionById = async (req, res) => {
     try {
