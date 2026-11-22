@@ -5,6 +5,7 @@ import cors from "cors";
 import "dotenv/config";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./config/auth.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
 const app = express();
 
 // Server port
@@ -34,7 +35,11 @@ app.use(async (req, res, next) => {
 });
 
 //routes
+
+// Routes
 app.use("/api/tuitions", tuitionRoutes);
+app.use("/api/applications", applicationRoutes);
+
 
 // Test route
 app.get("/", (req, res) => {

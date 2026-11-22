@@ -1,39 +1,41 @@
 
 import { ObjectId } from "mongodb";
 import { getDB } from "../config/db.js";
+import { auth } from "../config/auth.js";
+import { fromNodeHeaders } from "better-auth/node";
 
+// Verify logged-in student
+const getStudentSession = async (req) => {
+    const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+    });
+
+    if (!session) return null;
+    if (session.user.role !== "student") return null;
+
+    return session;
+};
+
+// Create Application
 const createApplication = async (req, res) => {
     try {
         const db = getDB();
+        const session = await getStudentSession(req);
 
-        const {
-            tuitionId,
-            tuitionTitle,
-            studentName,
-            studentEmail,
-            tutorEmail,
-        } = req.body;
-
-        // Validate required fields
-        if (
-            !tuitionId ||
-            !studentName ||
-            !studentEmail ||
-            !tutorEmail
-        ) {
-            return res.status(400).send({
-                message: "All required fields must be provided",
+        if (!session) {
+            return res.status(401).send({
+                message: "Please login with a student account",
             });
         }
 
-        // Validate MongoDB ID
-        if (!ObjectId.isValid(tuitionId)) {
+        const { tuitionId } = req.body;
+
+        if (!tuitionId || !ObjectId.isValid(tuitionId)) {
             return res.status(400).send({
                 message: "Invalid tuition ID",
             });
         }
 
-        // Check whether tuition exists and is approved
         const tuition = await db.collection("tuitions").findOne({
             _id: new ObjectId(tuitionId),
             approvalStatus: "approved",
@@ -46,7 +48,8 @@ const createApplication = async (req, res) => {
             });
         }
 
-        // Prevent duplicate applications
+        const studentEmail = session.user.email;
+
         const existingApplication = await db
             .collection("applications")
             .findOne({
@@ -60,11 +63,10 @@ const createApplication = async (req, res) => {
             });
         }
 
-        // Save application
         const newApplication = {
             tuitionId,
             tuitionTitle: tuition.title,
-            studentName,
+            studentName: session.user.name,
             studentEmail,
             tutorEmail: tuition.tutorEmail,
             status: "pending",
@@ -89,4 +91,36 @@ const createApplication = async (req, res) => {
     }
 };
 
-export { createApplication };
+// Get logged-in student's applications
+const getMyApplications = async (req, res) => {
+    try {
+        const db = getDB();
+        const session = await getStudentSession(req);
+
+        if (!session) {
+            return res.status(401).send({
+                message: "Please login with a student account",
+            });
+        }
+
+        const applications = await db
+            .collection("applications")
+            .find({
+                studentEmail: session.user.email,
+            })
+            .sort({ appliedAt: -1 })
+            .toArray();
+
+        res.send(applications);
+
+    } catch (error) {
+        console.error("Get My Applications Error:", error);
+
+        res.status(500).send({
+            message: "Failed to fetch applications",
+        });
+    }
+};
+
+export { createApplication, getMyApplications };
+
